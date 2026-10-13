@@ -6,23 +6,20 @@ import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import java.net.URI;
+import org.springframework.web.client.RestTemplate;
 import java.util.List;
 
 @Component
 public class ProductClient {
 
-    private final RestClient restClient;
+    private final RestTemplate restTemplate;
     private final DiscoveryClient discoveryClient;
 
     public ProductClient(
-            RestClient.Builder restClientBuilder,
+            RestTemplate restTemplate,
             DiscoveryClient discoveryClient) {
-        this.restClient = restClientBuilder.build();
+        this.restTemplate = restTemplate;
         this.discoveryClient = discoveryClient;
     }
 
@@ -34,16 +31,11 @@ public class ProductClient {
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
-        URI productUri = UriComponentsBuilder.fromUri(instances.get(0).getUri())
-                .path("/api/v1/products/{id}")
-                .buildAndExpand(productId)
-                .toUri();
-
         try {
-            ProductResponseDTO product = restClient.get()
-                    .uri(productUri)
-                    .retrieve()
-                    .body(ProductResponseDTO.class);
+            ProductResponseDTO product = restTemplate.getForObject(
+                    "http://PRODUCT-SERVICE/api/v1/products/{id}",
+                    ProductResponseDTO.class,
+                    productId);
             if (product == null || product.price() == null) {
                 throw new ProductServiceException("Product Service trả về dữ liệu không hợp lệ");
             }
